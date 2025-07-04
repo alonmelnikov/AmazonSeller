@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ROI Calculator</title>
+  <meta name="viewport" content="width=600, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f0f2f5;
+      width: 600px;
+      height: auto;
+      overflow-y: auto;
+    }
+    h2 { text-align: center; color: #003366; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+    .row-label { font-weight: bold; color: #333; align-self: center; }
+    .row-input input {
+      width: 100px;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 20px 0;
+    }
+    .btn:hover { background: #0056b3; }
+    #fastResults { display: none; margin-top: 10px; padding: 10px; background: #e7f7ee; border-left: 4px solid #0e7c45; }
+    #fastResults .label { font-weight: bold; }
+    #fastResults .value { font-weight: bold; margin-left: 5px; }
+    .view-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .view-toggle button {
+      padding: 6px 12px;
+      font-weight: bold;
+      border: none;
+      background: #eee;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .view-toggle button:hover { background: #ddd; }
+    .cards-wrap {
+      display: none;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .card {
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      width: 170px;
+      text-align: center;
+    }
+    .card .label { font-weight: bold; color: #444; margin-bottom: 6px; }
+    .card .value { font-size: 1.1rem; font-weight: bold; color: #111; }
+    #tableView {
+      display: none;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+    #statusMessage {
+      display: none;
+      text-align: center;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>ROI Calculator</h2>
+  <div class="grid">
+    <div class="row-label">Sell Price</div><div class="row-input"><input id="price1" type="number"></div>
+    <div class="row-label">Weight (KG)</div><div class="row-input"><input id="weight" type="number"></div>
+    <div class="row-label">Monthly Sales</div><div class="row-input"><input id="monthlySales" type="number"></div>
+    <div class="row-label">Marketing %</div><div class="row-input"><input id="marketingPct" type="number"></div>
+    <div class="row-label">Coupons %</div><div class="row-input"><input id="couponsPct" type="number"></div>
+    <div class="row-label">Coupons Redeemed %</div><div class="row-input"><input id="couponsRedeemedPct" type="number"></div>
+    <div class="row-label">Refunds %</div><div class="row-input"><input id="refundsPct" type="number"></div>
+    <div class="row-label">Fulfillment Fee</div><div class="row-input"><input id="fulfillFee" type="number"></div>
+    <div class="row-label">Storage Fee</div><div class="row-input"><input id="storageFee" type="number"></div>
+    <div class="row-label">Inspection Fee</div><div class="row-input"><input id="inspectionFee" type="number"></div>
+    <div class="row-label">Alibaba Cost</div><div class="row-input"><input id="alibabaCost" type="number"></div>
+    <div class="row-label">Shipping + Custom</div><div class="row-input"><input id="shipCustom" type="number"></div>
+    <div class="row-label">Shipping / KG</div><div class="row-input"><input id="shipPerKg" type="number"></div>
+  </div>
+
+  <button class="btn" onclick="manualRecalc()">חשב ROI</button>
+
+  <div id="fastResults">
+    <span class="label">Net Income:</span><span class="value" id="netIncome_val">-</span><br>
+    <span class="label">ROI:</span><span class="value" id="roi_val">-</span>
+  </div>
+
+  <div class="view-toggle">
+    <button onclick="switchToCards()">כרטיסים</button>
+    <button onclick="switchToTable()">טבלה</button>
+  </div>
+
+  <div class="cards-wrap" id="cardView">
+    <div class="card"><div class="label">Net Income</div><div class="value" id="netIncome_val_card">-</div></div>
+    <div class="card"><div class="label">ROI</div><div class="value" id="roi_val_card">-</div></div>
+    <div class="card"><div class="label">Total Revenue</div><div class="value" id="totrev_val_card">-</div></div>
+    <div class="card"><div class="label">Total Expenses</div><div class="value" id="totexp_val_card">-</div></div>
+    <div class="card"><div class="label">Total Profit</div><div class="value" id="totprofit_val_card">-</div></div>
+  </div>
+
+  <div id="tableView">
+    <table>
+      <thead><tr><th>Qty</th><th>COGS</th><th>Supply+Ship</th><th>Revenue</th><th>Expenses</th><th>Profit</th></tr></thead>
+      <tbody>
+        <tr>
+          <td id="qty_val">-</td>
+          <td id="cogs_val">-</td>
+          <td id="supship_val">-</td>
+          <td id="totrev_val">-</td>
+          <td id="totexp_val">-</td>
+          <td id="totprofit_val">-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="statusMessage"></div>
+
+  <script src="roi.js"></script>
+</body>
+</html>

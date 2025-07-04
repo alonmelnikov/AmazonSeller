@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ASIN Analyzer - Full View</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      width: 800px;
+      height: 800px;
+      padding: 10px;
+      background: #f7f9fc;
+      margin: 0;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tabs button {
+      padding: 8px 14px;
+      cursor: pointer;
+      background: #f1f3f5;
+      border: none;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+      font-weight: 600;
+    }
+
+    .tabs button.active {
+      background: #007bff;
+      color: white;
+    }
+
+    .tabs button:hover {
+      background: #dce6ff;
+    }
+
+    .tab {
+      display: none;
+      overflow: auto;
+      height: 640px;
+      margin-top: 10px;
+    }
+
+    .tab.active {
+      display: block;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      border: none;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #f0f2f5;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    #statusBar {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: center;
+      background: #e2e3e5;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      margin-top: 14px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eaeaea;
+      margin-bottom: 10px;
+    }
+
+    .card-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .card ul li {
+      padding: 6px 0;
+      border-bottom: 1px dashed #eee;
+    }
+
+    #competitorsBtn {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #competitorList {
+      margin-top: 10px;
+      display: none;
+    }
+
+    #competitorList a {
+      display: block;
+      color: #007bff;
+      text-decoration: none;
+      margin: 4px 0;
+    }
+
+    .period-select {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .periodBtn {
+      padding: 6px 10px;
+      margin: 0 4px;
+      border: none;
+      background: #eee;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .periodBtn.active {
+      background: #007bff;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="tabs">
+      <button id="tabBtn1" class="active">🔍 Keywords</button>
+      <button id="tabBtn2">📦 Product Info</button>
+      <button id="tabBtn3">📈 Price Tracker</button>
+      <button id="tabBtn4">🐞 Raw API</button>
+    </div>
+  </div>
+
+  <div id="tab1" class="tab active"></div>
+  <div id="tab2" class="tab"></div>
+  <div id="tab3" class="tab"></div>
+  <div id="tab4" class="tab"></div>
+
+  <div id="statusBar">Loading...</div>
+
+  <script src="chart.umd.min.js"></script>
+  <script>
+    if (typeof Chart === "undefined") {
+      document.getElementById("statusBar").textContent = "⚠️ Chart.js not loaded!";
+      document.getElementById("statusBar").style.background = "#fff3cd";
+    }
+  </script>
+  <script src="popup.js"></script>
+</body>
+</html>

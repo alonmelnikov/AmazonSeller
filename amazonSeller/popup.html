@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ASIN Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      width: 600px;
+      height: 900px;
+      padding: 10px;
+      background: #f7f9fc;
+      margin: 0;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tabs button {
+      padding: 6px 10px;
+      cursor: pointer;
+      background: #f1f3f5;
+      border: none;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+      font-weight: 600;
+    }
+    .tabs button.active {
+      background: #007bff;
+      color: white;
+    }
+    .tabs button:hover {
+      background: #dce6ff;
+    }
+    .tab {
+      display: none;
+      overflow: auto;
+      height: calc(100% - 60px);
+    }
+    .tab.active {
+      display: block;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: none;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 13px;
+    }
+    th {
+      background: #f0f2f5;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    #statusBar {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      padding: 8px;
+      font-weight: 600;
+      text-align: center;
+      background: #e2e3e5;
+    }
+    #refreshBtn, #expandBtn {
+      padding: 6px 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-left: 6px;
+      transition: transform .2s;
+    }
+    #refreshBtn:hover, #expandBtn:hover { transform: translateY(-1px); }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      margin: 10px;
+    }
+    .product-metrics {
+      display: flex;
+      gap: 16px;
+    }
+    .period-select {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .periodBtn {
+      padding: 4px 8px;
+      margin: 0 2px;
+      border: none;
+      background: #eee;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .periodBtn.active {
+      background: #007bff;
+      color: white;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 20px;
+      padding: 10px;
+    }
+
+    .overview-grid .card {
+      background: var(--card-bg, #ffffff);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+
+    .product-summary {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .niche-summary {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .keyword-summary {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .chart-summary {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .keywords-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .keywords-table th,
+    .keywords-table td {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    /* ✅ NEW: Product Summary Style */
+    .summary-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-box .top-row,
+    .summary-box .bottom-row {
+      display: flex;
+      gap: 20px;
+    }
+    .info-block, .highlight-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+    }
+    .main-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .highlight-box .highlight-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    /* === Added for ROI === */
+    .roi-iframe {
+      width: 100%;
+      height: calc(100% - 32px);
+      border: none;
+      border-radius: 8px;
+    }
+    /* === End ROI styling === */
+
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="tabs">
+      <button id="tabBtn0" class="active">🏠 Overview</button>
+      <button id="tabBtn2">📦 Product Info</button>
+      <button id="tabBtn1">🔍 Keywords</button>
+      <button id="tabBtn5">📊 Niche</button>
+      <button id="tabBtn3">🧮 ROI</button>
+      <button id="tabBtn4">🐞 Raw API</button>
+    </div>
+    <div>
+      <button id="refreshBtn">🔄 Refresh</button>
+      <button id="expandBtn">🔳</button>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div id="tab0" class="tab active">
+   <div class="overview-grid">
+
+    <!-- Product Summary -->
+    <div class="card product-summary">
+      <div class="summary-box">
+        <div class="top-row">
+          <div class="info-block">
+            <div class="label">CATEGORY</div>
+            <div class="main-value" id="category">N/A</div>
+          </div>
+          <div class="highlight-box">
+            <div class="label">UNITS SOLD</div>
+            <div class="highlight-value" id="unitsSold">N/A</div>
+          </div>
+        </div>
+        <div class="bottom-row">
+          <div class="info-block">
+            <div class="label">PRICE</div>
+            <div class="main-value" id="price">N/A</div>
+          </div>
+          <div class="info-block">
+            <div class="label">RATING</div>
+            <div class="main-value" id="rating">N/A</div>
+          </div>
+          <div class="info-block">
+            <div class="label">DATE AVAILABLE</div>
+            <div class="main-value" id="dateAvailable">N/A</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Niche Summary -->
+    <div class="card niche-summary" id="overviewNiche">
+      <!-- niche content dynamically loaded -->
+    </div>
+
+    <!-- Keywords -->
+    <div class="card keyword-summary">
+      <h3>🔑 Top Keywords</h3>
+      <table class="keywords-table">
+        <thead><tr><th>Keyword</th><th>Search Vol</th><th>Est. Sales</th></tr></thead>
+        <tbody id="overviewKeywords">
+          <!-- keywords loaded dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Chart -->
+    <div class="card chart-summary">
+      <h3>📈 Price & Sales</h3>
+      <div class="period-select product-periods">
+        <button data-period="Y" class="periodBtn active">Y</button>
+        <button data-period="M" class="periodBtn">M</button>
+        <button data-period="D" class="periodBtn">D</button>
+      </div>
+      <div id="salesPriceTable"></div>
+    </div>
+
+   </div>
+  </div>
+
+  <!-- Product Info -->
+  <div id="tab2" class="tab"></div>
+
+  <!-- Keywords -->
+  <div id="tab1" class="tab">
+    <div class="card">
+      <h3>🔍 Keyword Insights</h3>
+      <div id="tab1Content">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Niche -->
+  <div id="tab5" class="tab">
+    <div class="card">
+      <h3>📊 Niche Analysis</h3>
+      <div id="tab5Content">Loading...</div>
+    </div>
+  </div>
+
+  <!-- ROI (עם iframe) -->
+  <div id="tab3" class="tab">
+    <iframe class="roi-iframe" src="roi.html"></iframe>
+  </div>
+
+  <!-- Raw API -->
+  <div id="tab4" class="tab"></div>
+
+  <div id="statusBar">Loading...</div>
+
+  <script src="chart.umd.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
