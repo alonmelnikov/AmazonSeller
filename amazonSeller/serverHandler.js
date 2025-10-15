@@ -1,6 +1,6 @@
 // serverHandler.js
 // Centralized API/fetch logic for the Amazon Seller extension using SellerApp API
-
+ //
 const BASE_URL = "https://api.sellerapp.com";
 
 const CLIENT_ID = "tomer19839";
