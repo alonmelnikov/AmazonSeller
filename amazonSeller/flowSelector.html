@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flow Selector</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      margin: 12px;
+      padding: 16px 32px;
+      font-size: 1.2em;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <h2>Choose a flow to run:</h2>
+  <button onclick="selectFlow(1)">Flow 1</button>
+  <button onclick="selectFlow(2)">Flow 2</button>
+
+  <script>
+    function selectFlow(flow) {
+      alert('Flow ' + flow + ' selected!');
+      // You can redirect or trigger your flow logic here
+      // Example: window.location.href = `flow${flow}.html`;
+    }
+  </script>
+</body>
+</html>
