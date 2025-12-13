@@ -2,19 +2,112 @@
 
 console.log("[JS DEBUG] content.js loaded!");
 
+// Extract ASIN from URL
+function extractASIN(url) {
+  if (!url) return null;
+
+  try {
+    const u = new URL(url);
+
+    // 1) Look for /dp/ASIN
+    let match = u.pathname.match(/\/dp\/([A-Z0-9]{10})(?:[/?]|$)/i);
+    if (match) {
+      const asin = match[1].toUpperCase();
+      console.log("[JS DEBUG] ✅ Found ASIN via /dp/ pattern:", asin);
+      return asin;
+    }
+
+    // 2) Look for /gp/product/ASIN
+    match = u.pathname.match(/\/product\/([A-Z0-9]{10})(?:[/?]|$)/i);
+    if (match) {
+      const asin = match[1].toUpperCase();
+      console.log("[JS DEBUG] ✅ Found ASIN via /product/ pattern:", asin);
+      return asin;
+    }
+
+    // 3) Look for "asin=" in query string
+    match = u.search.match(/asin=([A-Z0-9]{10})/i);
+    if (match) {
+      const asin = match[1].toUpperCase();
+      console.log("[JS DEBUG] ✅ Found ASIN via query param (asin=):", asin);
+      return asin;
+    }
+
+    // 4) Look for data-asin inside URL fragments
+    match = url.match(/([A-Z0-9]{10})(?=[/?&]|$)/i);
+    if (match) {
+      const asin = match[1].toUpperCase();
+      // Validate it's likely an ASIN (starts with B, A, or 0-9)
+      if (/^[BA0-9]/.test(asin)) {
+        console.log("[JS DEBUG] ✅ Found ASIN via fallback pattern:", asin);
+        return asin;
+      }
+    }
+
+  } catch (e) {
+    console.error("[JS DEBUG] Invalid URL:", e);
+    return null;
+  }
+
+  return null;
+}
+
 function getASINFromURL() {
-  // URL דוגמת https://www.amazon.com/dp/B012345678/
-  const match = window.location.pathname.match(/\/dp\/([A-Z0-9]{10})(?:[/?]|$)/i);
-  if (match) return match[1];
-  // URL דוגמת https://www.amazon.com/gp/product/B012345678/
-  const match2 = window.location.pathname.match(/\/product\/([A-Z0-9]{10})(?:[/?]|$)/i);
-  if (match2) return match2[1];
-  // ניסוי נוסף: חיפוש ב-id של הדף
-  const asinInput = document.getElementById("ASIN");
-  if (asinInput && asinInput.value) return asinInput.value.trim();
-  // נסה לחפש באלמנטים נפוצים
-  const el = document.querySelector('[data-asin]');
-  if (el && el.getAttribute('data-asin')) return el.getAttribute('data-asin');
+  console.log("[JS DEBUG] getASINFromURL - pathname:", window.location.pathname);
+  console.log("[JS DEBUG] getASINFromURL - full URL:", window.location.href);
+  
+  // Use the extractASIN function
+  const asin = extractASIN(window.location.href);
+  
+  if (asin) {
+    return asin;
+  }
+  
+  // Fallback: try decoded URL
+  try {
+    const decodedUrl = decodeURIComponent(window.location.href);
+    const decodedAsin = extractASIN(decodedUrl);
+    if (decodedAsin) {
+      return decodedAsin;
+    }
+  } catch (e) {
+    console.warn("[JS DEBUG] Could not decode URL:", e);
+  }
+  
+  // Additional fallbacks: try page elements
+  // Try data-asin attributes
+  const dataAsinEl = document.querySelector('[data-asin]');
+  if (dataAsinEl) {
+    const asin = dataAsinEl.getAttribute('data-asin');
+    if (asin && /^[A-Z0-9]{10}$/i.test(asin)) {
+      console.log("[JS DEBUG] ✅ Found ASIN via data-asin attribute:", asin.toUpperCase());
+      return asin.toUpperCase();
+    }
+  }
+  
+  // Try meta tags
+  const metaAsin = document.querySelector('meta[name="ASIN"], meta[property="ASIN"]');
+  if (metaAsin) {
+    const asin = metaAsin.content || metaAsin.getAttribute('content');
+    if (asin && /^[A-Z0-9]{10}$/i.test(asin)) {
+      console.log("[JS DEBUG] ✅ Found ASIN via meta tag:", asin.toUpperCase());
+      return asin.toUpperCase();
+    }
+  }
+  
+  // Try canonical URL
+  const canonicalLink = document.querySelector('link[rel="canonical"]');
+  if (canonicalLink) {
+    const canonicalAsin = extractASIN(canonicalLink.href);
+    if (canonicalAsin) {
+      console.log("[JS DEBUG] ✅ Found ASIN via canonical URL:", canonicalAsin);
+      return canonicalAsin;
+    }
+  }
+  
+  console.error("[JS DEBUG] ❌ Could not extract ASIN from URL");
+  console.error("[JS DEBUG] Pathname:", window.location.pathname);
+  console.error("[JS DEBUG] Full URL:", window.location.href);
   return null;
 }
 
@@ -101,6 +194,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const reviews = getReviews();
     const dimensions = getDimensions();
 
+    // Validate ASIN before sending
+    if (asin) {
+      if (!/^[A-Z0-9]{10}$/.test(asin)) {
+        console.error("[JS DEBUG] ❌ Invalid ASIN format:", asin);
+      } else {
+        console.log("[JS DEBUG] ✅ Valid ASIN extracted:", asin);
+      }
+    } else {
+      console.error("[JS DEBUG] ❌ No ASIN found on page");
+    }
+
     console.log("[JS DEBUG] content.js got message scrapeProductInfo", {asin, title, price, rating, reviews, dimensions});
 
     sendResponse({
@@ -111,5 +215,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       reviews,
       dimensions
     });
+    
+    // Return true to indicate we will send a response asynchronously
+    return true;
   }
 });

@@ -4,7 +4,6 @@
   "version": "1.1",
   "description": "Analyze ASINs for keywords, pricing, and product info using JungleScout API.",
   "action": {
-    "default_popup": "flowSelector.html",
     "default_icon": {
       "128": "icon-128.png"
     }
@@ -16,7 +15,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "windows"
   ],
 "host_permissions": [
   "https://*.amazon.com/*",
@@ -43,7 +43,11 @@
       "resources": [
         "chart.umd.min.js",
         "roi.html",
-        "roi.js"
+        "roi.js",
+        "serverHandler.js",
+        "flowSelector.html",
+        "flowSelector.js",
+        "flowSelectorInline.js"
       ],
       "matches": ["<all_urls>"]
     }

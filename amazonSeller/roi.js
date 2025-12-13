@@ -50,6 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // הפעל חישוב אוטומטי בכל שינוי
   document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', manualRecalc));
   
+  // Add event listeners for buttons
+  if (html('recalcBtn')) {
+    html('recalcBtn').addEventListener('click', manualRecalc);
+  }
+  if (html('cardsBtn')) {
+    html('cardsBtn').addEventListener('click', switchToCards);
+  }
+  if (html('tableBtn')) {
+    html('tableBtn').addEventListener('click', switchToTable);
+  }
+  
   // חישוב ראשוני
   manualRecalc();
 });

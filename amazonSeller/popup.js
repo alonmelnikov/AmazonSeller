@@ -467,16 +467,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Startup =====
-  getASINFromContentScript((asin, scrapeRes) => {
-    if (asin) {
-      chrome.storage.local.set({ asin }, () => {
-        initWithASIN(asin, scrapeRes);
+  // First check if ASIN was passed from flow selector
+  chrome.storage.local.get(["flowASIN", "flowProductInfo"], (flowData) => {
+    if (flowData.flowASIN) {
+      // ASIN was passed from flow selector, use it
+      const asin = flowData.flowASIN;
+      const scrapeRes = flowData.flowProductInfo;
+      // Clear the flow data after reading it
+      chrome.storage.local.remove(["flowASIN", "flowProductInfo"], () => {
+        chrome.storage.local.set({ asin }, () => {
+          initWithASIN(asin, scrapeRes);
+        });
       });
     } else {
-      updateStatus("❌ יש להפעיל את התוסף בדף מוצר באמזון (amazon.com)", "#f8d7da");
-      chrome.storage.local.get("asin", res => {
-        if (res.asin) {
-          initWithASIN(res.asin, null);
+      // No flow ASIN, try to get from content script
+      getASINFromContentScript((asin, scrapeRes) => {
+        if (asin) {
+          chrome.storage.local.set({ asin }, () => {
+            initWithASIN(asin, scrapeRes);
+          });
+        } else {
+          updateStatus("❌ יש להפעיל את התוסף בדף מוצר באמזון (amazon.com)", "#f8d7da");
+          chrome.storage.local.get("asin", res => {
+            if (res.asin) {
+              initWithASIN(res.asin, null);
+            }
+          });
         }
       });
     }

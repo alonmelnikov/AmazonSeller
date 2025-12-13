@@ -114,7 +114,7 @@
     <div class="row-label">Shipping / KG</div><div class="row-input"><input id="shipPerKg" type="number"></div>
   </div>
 
-  <button class="btn" onclick="manualRecalc()">חשב ROI</button>
+  <button class="btn" id="recalcBtn">חשב ROI</button>
 
   <div id="fastResults">
     <span class="label">Net Income:</span><span class="value" id="netIncome_val">-</span><br>
@@ -122,8 +122,8 @@
   </div>
 
   <div class="view-toggle">
-    <button onclick="switchToCards()">כרטיסים</button>
-    <button onclick="switchToTable()">טבלה</button>
+    <button id="cardsBtn">כרטיסים</button>
+    <button id="tableBtn">טבלה</button>
   </div>
 
   <div class="cards-wrap" id="cardView">
