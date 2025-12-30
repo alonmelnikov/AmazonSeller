@@ -44,15 +44,15 @@
         "chart.umd.min.js",
         "roi.html",
         "roi.js",
-        "serverHandler.js",
-        "flowSelector.html",
-        "flowSelector.js",
-        "flowSelectorInline.js"
+        "server-handler.js",
+        "flow-selector.html",
+        "flow-selector.js",
+        "flow-selector-inline.js"
       ],
       "matches": ["<all_urls>"]
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' https: data:;"
   }
 }

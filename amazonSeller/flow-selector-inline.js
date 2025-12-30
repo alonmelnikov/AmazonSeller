@@ -1,4 +1,4 @@
-// flowSelectorInline.js - Inline script handlers moved here to comply with CSP
+// flow-selector-inline.js - Inline script handlers moved here to comply with CSP
 console.log('[FlowSelectorInline] Script starting...');
 
 // Wait for DOM

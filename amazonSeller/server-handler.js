@@ -1,10 +1,12 @@
-// serverHandler.js
+// server-handler.js
 // Centralized API/fetch logic for the Amazon Seller extension using SellerApp API
 
 const BASE_URL = "https://api.sellerapp.com";
 
-const CLIENT_ID = "tomer19839";
-const TOKEN = "c80beda6-e609-400d-9559-7fa46dc1e53d";
+// IMPORTANT: Do not hardcode credentials in source control.
+// Provide these at runtime (e.g., via extension settings / chrome.storage) before calling APIs.
+const CLIENT_ID = "";
+const TOKEN = "";
 
 const getDefaultHeaders = () => ({
   "Content-Type": "application/json",
@@ -19,8 +21,8 @@ const getDefaultHeaders = () => ({
 export async function testTokenValidity() {
   console.log('========================================');
   console.log('[API] Testing token validity...');
-  console.log('[API] CLIENT_ID:', CLIENT_ID);
-  console.log('[API] TOKEN:', TOKEN);
+  console.log('[API] CLIENT_ID set:', Boolean(CLIENT_ID));
+  console.log('[API] TOKEN set:', Boolean(TOKEN));
   console.log('[API] Headers:', getDefaultHeaders());
   console.log('========================================');
   
@@ -129,7 +131,7 @@ export async function getProductDetails(productId, geo = "us") {
           if (errorData.error.toLowerCase().includes('expired')) {
             errorMessage += `\n❌ TOKEN EXPIRED: ${errorData.error}\n\nPlease get a new token from SellerApp.`;
           } else if (errorData.error.toLowerCase().includes('invalid')) {
-            errorMessage += `\n❌ INVALID CREDENTIALS: ${errorData.error}\n\nPlease check your CLIENT_ID and TOKEN in serverHandler.js`;
+            errorMessage += `\n❌ INVALID CREDENTIALS: ${errorData.error}\n\nPlease check your CLIENT_ID and TOKEN in server-handler.js`;
           } else {
             errorMessage += `\nResponse: ${errorBody}`;
           }
@@ -222,21 +224,60 @@ export async function getProductHistory(productId, geo = "us", days = 30) {
  * ===================================================== */
 
 /**
- * Get keyword search results (search volume, CPC, competition, etc.)
- * Endpoint: GET /sellmetricsv2/keywords
+ * Keyword Search Result
+ * Endpoint: GET /sellmetricsv2/keyword_search_result
+ *
+ * Docs (from SellerApp):
+ * - Required params: geo, search
+ * - Optional: pagenumber, sort, include_sponsored_results, extended_response
+ * - Auth: headers "client-id" and "token"
  */
-export async function getKeywordSearchResult(keyword, geo = "us") {
-  const params = new URLSearchParams({
-    keyword,
-    geo,
-  }).toString();
+export async function getKeywordSearchResult(
+  search,
+  geo = "us",
+  pageNumber = 1,
+  {
+    extendedResponse = 1,
+    sort = undefined,
+    includeSponsoredResults = undefined,
+  } = {}
+) {
+  const paramsObj = {
+    geo: String(geo).toLowerCase(),
+    search: String(search),
+    pagenumber: String(pageNumber),
+    extended_response: String(extendedResponse),
+  };
 
-  const url = `${BASE_URL}/sellmetricsv2/keywords?${params}`;
+  // Optional params only when provided
+  if (sort) paramsObj.sort = String(sort);
+  if (includeSponsoredResults !== undefined && includeSponsoredResults !== null) {
+    paramsObj.include_sponsored_results = String(includeSponsoredResults);
+  }
+
+  const params = new URLSearchParams(paramsObj).toString();
+  const url = `${BASE_URL}/sellmetricsv2/keyword_search_result?${params}`;
+
+  console.log('[API] getKeywordSearchResult - URL:', url);
+  console.log('[API] getKeywordSearchResult - Headers:', getDefaultHeaders());
+
   const response = await fetch(url, {
     method: "GET",
     headers: getDefaultHeaders(),
   });
-  if (!response.ok) throw new Error("Failed to fetch keyword search result");
+
+  if (!response.ok) {
+    let errorMessage = `Failed to fetch keyword search result: ${response.status} ${response.statusText}`;
+    try {
+      const errorBody = await response.text();
+      console.error('[API] getKeywordSearchResult - Error response body:', errorBody);
+      errorMessage += `\nResponse: ${errorBody}`;
+    } catch (e) {
+      console.error('[API] getKeywordSearchResult - Could not read error response');
+    }
+    throw new Error(errorMessage);
+  }
+
   const data = await response.json();
   return { url, data };
 }

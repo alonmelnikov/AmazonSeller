@@ -36,7 +36,7 @@ chrome.action.onClicked.addListener(async () => {
     
     // Create new window
     chrome.windows.create({
-      url: chrome.runtime.getURL('flowSelector.html'),
+      url: chrome.runtime.getURL('flow-selector.html'),
       type: 'popup',
       width: width,
       height: height,
@@ -49,7 +49,7 @@ chrome.action.onClicked.addListener(async () => {
   } catch (error) {
     // Fallback: use fixed size (3/4 of 1920x1080)
     chrome.windows.create({
-      url: chrome.runtime.getURL('flowSelector.html'),
+      url: chrome.runtime.getURL('flow-selector.html'),
       type: 'popup',
       width: 1440,
       height: 810,
