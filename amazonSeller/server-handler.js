@@ -4,15 +4,73 @@
 const BASE_URL = "https://api.sellerapp.com";
 
 // IMPORTANT: Do not hardcode credentials in source control.
-// Provide these at runtime (e.g., via extension settings / chrome.storage) before calling APIs.
-const CLIENT_ID = "";
-const TOKEN = "";
+// These must be provided at runtime via chrome.storage.local.
+const AUTH_STORAGE_KEYS = {
+  clientId: "sellerAppClientId",
+  token: "sellerAppToken",
+};
 
-const getDefaultHeaders = () => ({
-  "Content-Type": "application/json",
-  "client-id": CLIENT_ID,  // Try with hyphen (common API format)
-  "token": TOKEN,
-});
+function hasChromeStorage() {
+  return typeof chrome !== "undefined" && chrome?.storage?.local?.get && chrome?.storage?.local?.set;
+}
+
+function storageGet(keys) {
+  return new Promise((resolve) => chrome.storage.local.get(keys, (result) => resolve(result || {})));
+}
+
+function storageSet(obj) {
+  return new Promise((resolve) => chrome.storage.local.set(obj, () => resolve()));
+}
+
+let authCache = null;
+
+async function getSellerAppAuth({ forceReload = false } = {}) {
+  if (!forceReload && authCache) return authCache;
+  if (!hasChromeStorage()) {
+    authCache = { clientId: "", token: "" };
+    return authCache;
+  }
+
+  const res = await storageGet([AUTH_STORAGE_KEYS.clientId, AUTH_STORAGE_KEYS.token]);
+  authCache = {
+    clientId: res[AUTH_STORAGE_KEYS.clientId] || "",
+    token: res[AUTH_STORAGE_KEYS.token] || "",
+  };
+  return authCache;
+}
+
+function missingCredsError() {
+  return new Error(
+    [
+      "SellerApp credentials are missing.",
+      "",
+      "Set them once in the extension context (DevTools Console) with:",
+      `chrome.storage.local.set({ ${AUTH_STORAGE_KEYS.clientId}: 'YOUR_CLIENT_ID', ${AUTH_STORAGE_KEYS.token}: 'YOUR_TOKEN' })`,
+      "",
+      "Then rerun Flow 1 / Flow 2.",
+    ].join("\n")
+  );
+}
+
+async function getDefaultHeaders() {
+  const { clientId, token } = await getSellerAppAuth();
+  if (!clientId || !token) throw missingCredsError();
+  return {
+    "Content-Type": "application/json",
+    "client-id": clientId,
+    token,
+  };
+}
+
+export async function setSellerAppCredentials({ clientId, token }) {
+  if (!hasChromeStorage()) throw new Error("chrome.storage.local is not available in this context.");
+  await storageSet({
+    [AUTH_STORAGE_KEYS.clientId]: clientId ?? "",
+    [AUTH_STORAGE_KEYS.token]: token ?? "",
+  });
+  await getSellerAppAuth({ forceReload: true });
+  return { ok: true };
+}
 
 /**
  * Test if the token is valid by making a simple API call
@@ -21,18 +79,19 @@ const getDefaultHeaders = () => ({
 export async function testTokenValidity() {
   console.log('========================================');
   console.log('[API] Testing token validity...');
-  console.log('[API] CLIENT_ID set:', Boolean(CLIENT_ID));
-  console.log('[API] TOKEN set:', Boolean(TOKEN));
-  console.log('[API] Headers:', getDefaultHeaders());
+  const auth = await getSellerAppAuth();
+  console.log('[API] sellerAppClientId set:', Boolean(auth.clientId));
+  console.log('[API] sellerAppToken set:', Boolean(auth.token));
   console.log('========================================');
   
   // Try a simple API call with minimal parameters
   const testUrl = `${BASE_URL}/sellmetricsv2/products?product_specifications=1&geo=us&productIds=B086KY66PJ`;
   
   try {
+    const headers = await getDefaultHeaders();
     const response = await fetch(testUrl, {
       method: "GET",
-      headers: getDefaultHeaders(),
+      headers,
     });
     
     console.log('[API] Test Response Status:', response.status, response.statusText);
@@ -71,6 +130,7 @@ export async function testTokenValidity() {
 // Make testTokenValidity available globally for console testing
 if (typeof window !== 'undefined') {
   window.testTokenValidity = testTokenValidity;
+  window.setSellerAppCredentials = setSellerAppCredentials;
 }
 
 /* =====================================================
@@ -104,16 +164,19 @@ export async function getProductDetails(productId, geo = "us") {
 
   const url = `${BASE_URL}/sellmetricsv2/products?${queryParams}`;
   console.log('[API] getProductDetails - Full URL:', url);
-  console.log('[API] getProductDetails - Headers:', JSON.stringify(getDefaultHeaders(), null, 2));
-  console.log('[API] Credentials - clientID:', CLIENT_ID);
-  console.log('[API] Credentials - token:', TOKEN);
   console.log('[API] Query params include clientID:', queryParams.includes('clientID'));
   console.log('[API] Query params include token:', queryParams.includes('token'));
   console.log('[API] About to call fetch()...');
+
+  const headers = await getDefaultHeaders();
+  console.log('[API] getProductDetails - Auth headers set:', {
+    'client-id': Boolean(headers['client-id']),
+    token: Boolean(headers.token),
+  });
   
   const response = await fetch(url, {
     method: "GET",
-    headers: getDefaultHeaders(), // Headers also include clientID and token
+    headers,
   });
   
   console.log('[API] getProductDetails - Response status:', response.status, response.statusText);
@@ -131,7 +194,7 @@ export async function getProductDetails(productId, geo = "us") {
           if (errorData.error.toLowerCase().includes('expired')) {
             errorMessage += `\n❌ TOKEN EXPIRED: ${errorData.error}\n\nPlease get a new token from SellerApp.`;
           } else if (errorData.error.toLowerCase().includes('invalid')) {
-            errorMessage += `\n❌ INVALID CREDENTIALS: ${errorData.error}\n\nPlease check your CLIENT_ID and TOKEN in server-handler.js`;
+            errorMessage += `\n❌ INVALID CREDENTIALS: ${errorData.error}\n\nPlease verify ${AUTH_STORAGE_KEYS.clientId} and ${AUTH_STORAGE_KEYS.token} in chrome.storage.local.`;
           } else {
             errorMessage += `\nResponse: ${errorBody}`;
           }
@@ -190,10 +253,12 @@ export async function getProductHistory(productId, geo = "us", days = 30) {
   const url = `${BASE_URL}/sellmetricsv2/products/history?${params}`;
   console.log('[API] getProductHistory - URL:', url);
   console.log('[API] About to call fetch()...');
+
+  const headers = await getDefaultHeaders();
   
   const response = await fetch(url, {
     method: "GET",
-    headers: getDefaultHeaders(),
+    headers,
   });
   
   console.log('[API] getProductHistory - Response status:', response.status, response.statusText);
@@ -259,11 +324,15 @@ export async function getKeywordSearchResult(
   const url = `${BASE_URL}/sellmetricsv2/keyword_search_result?${params}`;
 
   console.log('[API] getKeywordSearchResult - URL:', url);
-  console.log('[API] getKeywordSearchResult - Headers:', getDefaultHeaders());
+  const headers = await getDefaultHeaders();
+  console.log('[API] getKeywordSearchResult - Auth headers set:', {
+    'client-id': Boolean(headers['client-id']),
+    token: Boolean(headers.token),
+  });
 
   const response = await fetch(url, {
     method: "GET",
-    headers: getDefaultHeaders(),
+    headers,
   });
 
   if (!response.ok) {
@@ -320,10 +389,12 @@ export async function getReverseAsinKeywords(productId, geo = "us", pageNumber =
   const url = `${BASE_URL}/sellmetricsv2/keyword_research?${params}`;
   console.log('[API] getReverseAsinKeywords - URL:', url);
   console.log('[API] About to call fetch()...');
+
+  const headers = await getDefaultHeaders();
   
   const response = await fetch(url, {
     method: "GET",
-    headers: getDefaultHeaders(),
+    headers,
   });
   
   console.log('[API] getReverseAsinKeywords - Response status:', response.status, response.statusText);
@@ -385,10 +456,12 @@ export async function getCategoryProducts(categoryId, geo = "us", pageNumber = 1
   const url = `${BASE_URL}/sellmetricsv2/category_products?${params}`;
   console.log('[API] getCategoryProducts - URL:', url);
   console.log('[API] About to call fetch()...');
+
+  const headers = await getDefaultHeaders();
   
   const response = await fetch(url, {
     method: "GET",
-    headers: getDefaultHeaders(),
+    headers,
   });
   
   console.log('[API] getCategoryProducts - Response status:', response.status, response.statusText);
