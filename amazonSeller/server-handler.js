@@ -3,8 +3,12 @@
 
 const BASE_URL = "https://api.sellerapp.com";
 
-// IMPORTANT: Do not hardcode credentials in source control.
-// These must be provided at runtime via chrome.storage.local.
+// SellerApp credentials
+// NOTE: You asked to restore these values directly into the code.
+// If you prefer the safer approach later, you can override them via chrome.storage.local.
+const DEFAULT_CLIENT_ID = "tomer19839";
+const DEFAULT_TOKEN = "c80beda6-e609-400d-9559-7fa46dc1e53d";
+
 const AUTH_STORAGE_KEYS = {
   clientId: "sellerAppClientId",
   token: "sellerAppToken",
@@ -27,34 +31,22 @@ let authCache = null;
 async function getSellerAppAuth({ forceReload = false } = {}) {
   if (!forceReload && authCache) return authCache;
   if (!hasChromeStorage()) {
-    authCache = { clientId: "", token: "" };
+    authCache = { clientId: DEFAULT_CLIENT_ID, token: DEFAULT_TOKEN };
     return authCache;
   }
 
   const res = await storageGet([AUTH_STORAGE_KEYS.clientId, AUTH_STORAGE_KEYS.token]);
+  const storedClientId = res[AUTH_STORAGE_KEYS.clientId] || "";
+  const storedToken = res[AUTH_STORAGE_KEYS.token] || "";
   authCache = {
-    clientId: res[AUTH_STORAGE_KEYS.clientId] || "",
-    token: res[AUTH_STORAGE_KEYS.token] || "",
+    clientId: storedClientId || DEFAULT_CLIENT_ID,
+    token: storedToken || DEFAULT_TOKEN,
   };
   return authCache;
 }
 
-function missingCredsError() {
-  return new Error(
-    [
-      "SellerApp credentials are missing.",
-      "",
-      "Set them once in the extension context (DevTools Console) with:",
-      `chrome.storage.local.set({ ${AUTH_STORAGE_KEYS.clientId}: 'YOUR_CLIENT_ID', ${AUTH_STORAGE_KEYS.token}: 'YOUR_TOKEN' })`,
-      "",
-      "Then rerun Flow 1 / Flow 2.",
-    ].join("\n")
-  );
-}
-
 async function getDefaultHeaders() {
   const { clientId, token } = await getSellerAppAuth();
-  if (!clientId || !token) throw missingCredsError();
   return {
     "Content-Type": "application/json",
     "client-id": clientId,
